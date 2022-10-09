@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+
+    <script src="./lib/axios.js"></script>
+  </head>
+  <body>
+    <input type="file" value="文件上传" class="fileInput" />
+    <button class="download">axios 文件下载</button>
+    <button class="fetchDownoload">fetch 文件下载</button>
+
+    <script>
+      // 上传(测试axios的进度回调)
+      function UploadFunc() {
+        let input = document.querySelector(".fileInput");
+        input.onchange = function (e) {
+          let file = e.target.files[0];
+          const reader = new FileReader();
+          reader.readAsArrayBuffer(file);
+          reader.onload = function () {
+            console.log(this.result);
+            const _data = new FormData();
+
+            _data.append("p1", "p1Value");
+            _data.append("files", file);
+            _data.append("p2", "p2Value");
+            // console.log(_data);
+            axios({
+              url: "http://localhost:4000/api/upload",
+              headers: { "Content-Type": "multipart/form-data" },
+              method: "POST",
+              data: _data,
+              onUploadProgress(progress) {
+                console.log(progress.loaded);
+                console.log(
+                  Math.round((progress.loaded / progress.total) * 100) + "%"
+                );
+              },
+            }).then((res) => {
+              console.log(res);
+            });
+          };
+        };
+      }
+
+      // 下载(测试axios的responseType)
+      (function Download() {
+        let download = document.querySelector(".download");
+        download.onclick = function () {
+          axios({
+            url: "http://localhost:4000/api/download",
+            responseType: "arraybuffer",
+            method: "get",
+          }).then((res) => {
+            console.log(res.data);
+            // let blob = new Blob([res.data]);
+            // const url = URL.createObjectURL(blob);
+            // let a = document.createElement("a");
+            // a.download = "1663319152418-invoice_02.pdfs";
+            // a.href = url;
+            // a.style.display = "none";
+            // document.body.appendChild(a);
+            // a.click();
+            // a.remove();
+            // a = null;
+          });
+        };
+      })();
+
+
+    
+      // fetch流式下载
+      (function FetchDownload() {
+        let fetchDownoload = document.querySelector(".fetchDownoload");
+        fetchDownoload.onclick = function () {
+          const _fetch = fetch("http://localhost:4000/api/download", {
+            method: "GET",
+          }).then((res) => {
+            // return res.arrayBuffer();
+            
+            let reader = res.body.getReader();
+            reader.read().then(function processText({ value, done }) {
+              if (done) {
+                console.log("传输完毕");
+                return;
+              }
+              console.log("读取到值", value);
+              return reader.read().then(processText);
+            });
+          })
+          // .then(data => {
+          //   console.log(data);
+          // });
+        };
+      })();
+    
+  
+    </script>
+  </body>
+</html>
